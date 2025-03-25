@@ -9,7 +9,7 @@ class Transaction:
 
 class TransactionHistory:
     def __init__(self):
-        self.__TransactionList = []
+        self.__TransactionList = [] # later will change for db interaction
 
     def add_transaction(self, transaction: Transaction) -> None:
         self.__TransactionList += [Transaction]
