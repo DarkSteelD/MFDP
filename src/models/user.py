@@ -3,7 +3,7 @@ from src.models.balance import Balance
 
 
 @dataclass
-class User(Balance):
+class User:
     is_admin: bool
     username: str
     email: str
