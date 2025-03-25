@@ -1,5 +1,5 @@
-from ml.model_abstaract import Hugging_face_model
+from ml.model_abstaract import HuggingFaceModel
 
-class Model_for_classification(Hugging_face_model):
+class ModelForClassification(HuggingFaceModel):
     def classificate(self, input: str) -> str:
         pass

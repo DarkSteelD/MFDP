@@ -8,7 +8,7 @@ class Prediction:
     successful: bool
 
 
-class Prediction_History:
+class PredictionsHistory:
     def __init__(self):
         self.__prediction_list = [] # later will change for db interaction
 

@@ -1,5 +1,6 @@
-from ml.model_abstaract import Hugging_face_model
+from ml.model_abstaract import HuggingFaceModel
 from PIL import Image
-class Model_for_classification(Hugging_face_model):
+
+class ModelForVisTransformer(HuggingFaceModel):
     def generate(self, input_str: str, input_image: Image) -> str:
         pass
