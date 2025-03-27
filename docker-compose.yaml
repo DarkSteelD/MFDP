@@ -1,0 +1,23 @@
+version: "3.8"
+
+services:
+  app:
+    # volumes:
+    #   - 
+    build: .
+    ports:
+    - "${PORT}:8000"
+    environment:
+    - DEBUG=${DEBUG}
+    - TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
+    env_file:
+    - .env.Docker-Compose
+
+  web-proxy:
+    image: nginx:latest
+  
+  database:
+    image: postgress:15
+  
+  rabbitmq:
+    image: rabbit:3
