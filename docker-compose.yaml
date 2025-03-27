@@ -2,8 +2,8 @@ version: "3.8"
 
 services:
   app:
-    # volumes:
-    #   - 
+    volumes:
+      - ./app:/src
     build: .
     ports:
     - "${PORT}:8000"
@@ -11,13 +11,31 @@ services:
     - DEBUG=${DEBUG}
     - TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
     env_file:
-    - .env.Docker-Compose
+    - .Dockerfile.env
 
   web-proxy:
-    image: nginx:latest
+    image: nginx:stable
+    depends_on: 
+    - app
+    ports:
+      - "443:443"
+      - "80:80"
   
   database:
-    image: postgress:15
-  
+    image: postgres:15-alpine
+    volumes:
+      - '/var/lib/postgre'
+    environment:
+    - POSTGRES_USER={USER}
+    - POSTGRES_PASSWORD={PASSWORD}
+    - POSTGRES_DB={DB}
+    env_file:
+    - .Postgres.env
   rabbitmq:
-    image: rabbit:3
+    image: rabbitmq:alpine
+    ports:
+    - "15675:15672" # У меня заняты порты, дебажу еще одно приложние
+    - "5675:5672"
+    restart: "on-failure"
+    volumes:
+      - '/var/lib/rabbitmq'
