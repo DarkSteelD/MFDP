@@ -24,11 +24,11 @@ services:
   database:
     image: postgres:15-alpine
     volumes:
-      - '/var/lib/postgre'
+      - 'postgres_volume:/var/lib/postgresql/data'
     environment:
-    - POSTGRES_USER={USER}
-    - POSTGRES_PASSWORD={PASSWORD}
-    - POSTGRES_DB={DB}
+    - POSTGRES_USER=${USER}
+    - POSTGRES_PASSWORD=${PASSWORD}
+    - POSTGRES_DB=${DB}
     env_file:
     - .Postgres.env
   rabbitmq:
@@ -38,4 +38,9 @@ services:
     - "5675:5672"
     restart: "on-failure"
     volumes:
-      - '/var/lib/rabbitmq'
+      - 'rabbitmq_volume:/var/lib/rabbitmq'
+
+
+volumes:
+  postgres_volume:
+  rabbitmq_volume: 
