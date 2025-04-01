@@ -1,0 +1,46 @@
+version: "3.8"
+
+services:
+  app:
+    volumes:
+      - ./app:/src
+    build: .
+    ports:
+    - "${PORT}:8000"
+    environment:
+    - DEBUG=${DEBUG}
+    - TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
+    env_file:
+    - .Dockerfile.env
+
+  web-proxy:
+    image: nginx:stable
+    depends_on: 
+    - app
+    ports:
+      - "443:443"
+      - "80:80"
+  
+  database:
+    image: postgres:15-alpine
+    volumes:
+      - 'postgres_volume:/var/lib/postgresql/data'
+    environment:
+    - POSTGRES_USER=${USER}
+    - POSTGRES_PASSWORD=${PASSWORD}
+    - POSTGRES_DB=${DB}
+    env_file:
+    - .Postgres.env
+  rabbitmq:
+    image: rabbitmq:alpine
+    ports:
+    - "15675:15672" # У меня заняты порты, дебажу еще одно приложние
+    - "5675:5672"
+    restart: "on-failure"
+    volumes:
+      - 'rabbitmq_volume:/var/lib/rabbitmq'
+
+
+volumes:
+  postgres_volume:
+  rabbitmq_volume: 
