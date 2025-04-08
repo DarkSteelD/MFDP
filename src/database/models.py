@@ -23,18 +23,35 @@ class Transaction(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     change = Column(Integer)
     valid = Column(Boolean)
-    time = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    time = Column(DateTime, default=lambda: datetime.now())
 
     user = relationship("User", back_populates="transactions")
+
+class MLModel(Base):
+    __tablename__ = "ml_models"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, index=True)
+    description = Column(String)
+    version = Column(String)
+    creation_date = Column(DateTime, default=lambda: datetime.now())
+    is_active = Column(Boolean, default=True)
+    model_type = Column(String)
+    parameters = Column(JSON, nullable=True)
+    metrics = Column(JSON, nullable=True)
+    
+    predictions = relationship("Prediction", back_populates="model")
 
 class Prediction(Base):
     __tablename__ = "predictions"
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
+    model_id = Column(Integer, ForeignKey("ml_models.id"))
     input_data = Column(JSON)
     output_data = Column(JSON) 
     successful = Column(Boolean)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-
-    user = relationship("User", back_populates="predictions") 
+    created_at = Column(DateTime, default=lambda: datetime.now())
+    execution_time = Column(Float, nullable=True)
+    user = relationship("User", back_populates="predictions")
+    model = relationship("MLModel", back_populates="predictions") 
