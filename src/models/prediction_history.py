@@ -10,7 +10,7 @@ class Prediction:
 
 class PredictionsHistory:
     def __init__(self):
-        self.__prediction_list = [] # later will change for db interaction
+        self.__prediction_list = []
 
     def add_transaction(self, transaction: Prediction) -> None:
         self.__prediction_list += [transaction]

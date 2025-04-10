@@ -10,8 +10,11 @@ services:
     environment:
     - DEBUG=${DEBUG}
     - TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
+    - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}
     env_file:
-    - .Dockerfile.env
+    - .app.env
+    depends_on:
+      - database
 
   web-proxy:
     image: nginx:stable
@@ -25,21 +28,19 @@ services:
     image: postgres:15-alpine
     volumes:
       - 'postgres_volume:/var/lib/postgresql/data'
-    environment:
-    - POSTGRES_USER=${USER}
-    - POSTGRES_PASSWORD=${PASSWORD}
-    - POSTGRES_DB=${DB}
     env_file:
-    - .Postgres.env
+      - .Postgres.env
+    ports:
+      - "5432:5432"
+
   rabbitmq:
     image: rabbitmq:alpine
     ports:
-    - "15675:15672" # У меня заняты порты, дебажу еще одно приложние
+    - "15675:15672"
     - "5675:5672"
     restart: "on-failure"
     volumes:
       - 'rabbitmq_volume:/var/lib/rabbitmq'
-
 
 volumes:
   postgres_volume:
