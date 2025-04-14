@@ -1,0 +1,106 @@
+version: '3.8'
+
+services:
+  rabbitmq:
+    image: rabbitmq:3.11-management
+    container_name: ml-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672" 
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - ml_network
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: ml-api
+    ports:
+      - "8000:8000"
+    environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - QUEUE_NAME=ml_tasks
+      - HOST=0.0.0.0
+      - PORT=8000
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - ml_network
+    volumes:
+      - ./src:/app/src
+      - ./logs:/app/logs
+
+  worker1:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: ml-worker1
+    environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - QUEUE_NAME=ml_tasks
+      - WORKER_ID=1
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - ml_network
+    volumes:
+      - ./src:/app/src
+      - ./logs:/app/logs
+      - ./models:/app/models
+
+  worker2:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: ml-worker2
+    environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - QUEUE_NAME=ml_tasks
+      - WORKER_ID=2
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - ml_network
+    volumes:
+      - ./src:/app/src
+      - ./logs:/app/logs
+      - ./models:/app/models
+
+  worker3:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: ml-worker3
+    environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - QUEUE_NAME=ml_tasks
+      - WORKER_ID=3
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - ml_network
+    volumes:
+      - ./src:/app/src
+      - ./logs:/app/logs
+      - ./models:/app/models
+
+networks:
+  ml_network:
+    driver: bridge
+
+volumes:
+  rabbitmq_data: 
