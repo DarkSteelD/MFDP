@@ -6,7 +6,7 @@ from sqlalchemy.future import select
 from typing import List
 
 from src.database.config import get_session
-from src.database.models import User, MLModel, Prediction
+from src.database.models import User, MLModel, Prediction, Transaction
 from src.api.schemas import PredictionCreate, PredictionResponse, MLModelResponse
 from src.api.auth import get_current_active_user, get_current_admin_user
 
@@ -64,12 +64,14 @@ async def make_prediction(
             status_code=status.HTTP_402_PAYMENT_REQUIRED,
             detail=f"Insufficient balance. Required: {prediction_cost}, Available: {current_user.balance}"
         )
+    
     start_time = time.time()
     
     output_data = {"result": "This is a simulated prediction result"}
     
     end_time = time.time()
     execution_time = (end_time - start_time) * 1000  
+
     db_prediction = Prediction(
         user_id=current_user.id,
         model_id=model.id,
@@ -82,7 +84,6 @@ async def make_prediction(
     
     current_user.balance -= prediction_cost
     
-    from src.database.models import Transaction
     transaction = Transaction(
         user_id=current_user.id,
         change=-prediction_cost,
