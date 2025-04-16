@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}Text Generation - ML Service{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h2>Text Generation</h2>
+        <p class="lead">Generate creative and coherent text using our language model</p>
+        <div class="alert alert-info">
+            <strong>Cost:</strong> 10 credits per request
+            <span class="float-end">Your balance: {{ user.balance }} credits</span>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h3>Generate Text</h3>
+            </div>
+            <div class="card-body">
+                <form method="post" action="/text-generation">
+                    <div class="mb-3">
+                        <label for="text" class="form-label">Input Text (Prompt)</label>
+                        <textarea class="form-control" id="text" name="text" rows="3" required></textarea>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="max_length" class="form-label">Maximum Length</label>
+                            <input type="range" class="form-range" id="max_length" name="max_length" min="10" max="200" value="100" oninput="updateMaxLengthValue(this.value)">
+                            <div class="text-center">
+                                <span id="max_length_value">100</span> tokens
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="temperature" class="form-label">Temperature</label>
+                            <input type="range" class="form-range" id="temperature" name="temperature" min="0.1" max="1.5" step="0.1" value="0.7" oninput="updateTemperatureValue(this.value)">
+                            <div class="text-center">
+                                <span id="temperature_value">0.7</span>
+                                <small class="text-muted d-block">Higher values = more random</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">Generate Text</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if result %}
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h3>Generated Text</h3>
+                <span class="badge bg-success">Prediction #{{ prediction_id }}</span>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Your prompt:</label>
+                    <div class="p-3 bg-light rounded">{{ prompt }}</div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Generated output:</label>
+                    <div class="p-3 bg-light rounded">{{ result }}</div>
+                </div>
+                
+                <div class="d-flex justify-content-between align-items-center text-muted small">
+                    <div>
+                        <strong>Execution time:</strong> {{ execution_time|round(2) }} seconds
+                    </div>
+                    <div>
+                        <strong>Credits used:</strong> 10
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function updateMaxLengthValue(val) {
+        document.getElementById('max_length_value').textContent = val;
+    }
+    
+    function updateTemperatureValue(val) {
+        document.getElementById('temperature_value').textContent = val;
+    }
+</script>
+{% endblock %} 
