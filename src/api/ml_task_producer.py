@@ -11,7 +11,6 @@ logging.basicConfig(
 logger = logging.getLogger("ml_task_producer")
 
 class MLTaskProducer:
-    """Producer class that sends ML tasks to a RabbitMQ queue."""
     
     def __init__(self, rabbitmq_url: str, queue_name: str = "ml_tasks"):
         self.rabbitmq_url = rabbitmq_url
@@ -50,13 +49,16 @@ class MLTaskProducer:
         if props.correlation_id in self.responses:
             self.responses[props.correlation_id] = json.loads(body)
     
-    def send_task(self, task_data: Dict[str, Any], wait_for_response: bool = False, timeout: int = 30) -> Optional[Dict[str, Any]]:
+    def send_task(self, task_data: Dict[str, Any], user_id: int, 
+                  wait_for_response: bool = False, timeout: int = 30) -> Optional[Dict[str, Any]]:
         if not self.channel:
             if not self.connect():
                 return {"error": "Failed to connect to RabbitMQ"}
         
         if 'task_id' not in task_data:
             task_data['task_id'] = str(uuid.uuid4())
+        
+        task_data['user_id'] = user_id
         
         task_id = task_data['task_id']
         
@@ -66,7 +68,7 @@ class MLTaskProducer:
                 self.responses[self.corr_id] = None
                 
                 properties = pika.BasicProperties(
-                    delivery_mode=2, 
+                    delivery_mode=2,
                     correlation_id=self.corr_id,
                     reply_to=self.callback_queue
                 )
@@ -82,7 +84,7 @@ class MLTaskProducer:
                 properties=properties
             )
             
-            logger.info(f"Sent task {task_id} to queue")
+            logger.info(f"Sent task {task_id} for user {user_id} to queue")
             
             if wait_for_response:
                 start_time = 0
@@ -104,8 +106,8 @@ class MLTaskProducer:
             logger.error(f"Error sending task {task_id}: {e}")
             return {"error": str(e), "task_id": task_id}
     
-    def send_text_generation_task(self, text: str, max_length: int = 100, temperature: float = 0.7, 
-                                  wait_for_response: bool = True) -> Dict[str, Any]:
+    def send_text_generation_task(self, text: str, user_id: int, max_length: int = 100, 
+                                  temperature: float = 0.7, wait_for_response: bool = True) -> Dict[str, Any]:
         task_data = {
             "task_type": "text_generation",
             "text": text,
@@ -113,9 +115,9 @@ class MLTaskProducer:
             "temperature": temperature
         }
         
-        return self.send_task(task_data, wait_for_response)
+        return self.send_task(task_data, user_id, wait_for_response)
     
-    def send_spam_detection_task(self, text: str, detailed: bool = False,
+    def send_spam_detection_task(self, text: str, user_id: int, detailed: bool = False,
                                 wait_for_response: bool = True) -> Dict[str, Any]:
         task_data = {
             "task_type": "spam_detection",
@@ -123,21 +125,23 @@ class MLTaskProducer:
             "detailed": detailed
         }
         
-        return self.send_task(task_data, wait_for_response)
+        return self.send_task(task_data, user_id, wait_for_response)
     
-    def send_image_caption_task(self, image_data: str, wait_for_response: bool = True) -> Dict[str, Any]:
+    def send_image_caption_task(self, image_data: str, user_id: int, 
+                                wait_for_response: bool = True) -> Dict[str, Any]:
         task_data = {
             "task_type": "image_caption",
             "image_data": image_data
         }
         
-        return self.send_task(task_data, wait_for_response)
+        return self.send_task(task_data, user_id, wait_for_response)
     
-    def send_batch_tasks(self, tasks: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def send_batch_tasks(self, tasks: List[Dict[str, Any]], user_id: int) -> List[Dict[str, Any]]:
+
         results = []
         
         for task_data in tasks:
-            result = self.send_task(task_data, wait_for_response=False)
+            result = self.send_task(task_data, user_id, wait_for_response=False)
             results.append(result)
         
         return results

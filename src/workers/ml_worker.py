@@ -7,10 +7,17 @@ import logging
 from PIL import Image
 import io
 import base64
+import asyncio
+import sqlalchemy
+from sqlalchemy.future import select
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
+from datetime import datetime
 
 from ml.model_gen import ModelForGeneration
 from ml.model_classification import ModelForClassification
 from ml.model_vis import ModelForVisTransformer
+from src.database.models import User, Transaction, Prediction, MLModel
 
 logging.basicConfig(
     level=logging.INFO,
@@ -21,6 +28,23 @@ logger = logging.getLogger("ml_worker")
 TASK_TEXT_GENERATION = "text_generation"
 TASK_SPAM_DETECTION = "spam_detection"
 TASK_IMAGE_CAPTION = "image_caption"
+
+MODEL_COSTS = {
+    TASK_TEXT_GENERATION: 10,
+    TASK_SPAM_DETECTION: 5,
+    TASK_IMAGE_CAPTION: 15
+}
+
+def get_database_url() -> str:
+    return os.getenv("DATABASE_URL", "postgresql+asyncpg://postgres@postgres:5432/ml_course")
+
+DATABASE_URL = get_database_url()
+engine = create_async_engine(DATABASE_URL, echo=True, future=True)
+AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+async def get_db_session():
+    async with AsyncSessionLocal() as session:
+        return session
 
 class MLWorker:
     
@@ -54,7 +78,9 @@ class MLWorker:
             
             self.connection = pika.BlockingConnection(parameters)
             self.channel = self.connection.channel()
+            
             self.channel.queue_declare(queue=self.queue_name, durable=True)
+            
             self.channel.basic_qos(prefetch_count=1)
             
             logger.info(f"Connected to RabbitMQ, listening on queue: {self.queue_name}")
@@ -62,6 +88,131 @@ class MLWorker:
         except Exception as e:
             logger.error(f"Failed to connect to RabbitMQ: {e}")
             return False
+
+    async def _check_user_balance(self, user_id: int, task_type: str) -> bool:
+        cost = MODEL_COSTS.get(task_type, 10)
+        
+        try:
+            session = await get_db_session()
+            
+            query = select(User).filter(User.id == user_id)
+            result = await session.execute(query)
+            user = result.scalar_one_or_none()
+            
+            if not user:
+                logger.error(f"User {user_id} not found")
+                return False
+            
+            if user.balance < cost:
+                logger.warning(f"User {user_id} has insufficient balance: {user.balance} < {cost}")
+                return False
+            
+            user.balance -= cost
+            transaction = Transaction(
+                user_id=user_id,
+                change=-cost,
+                valid=True,
+                time=datetime.now()
+            )
+            
+            session.add(transaction)
+            await session.commit()
+            
+            logger.info(f"Charged user {user_id}: {cost} credits, new balance: {user.balance}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error checking user balance: {e}")
+            return False
+            
+    async def _get_or_create_ml_model(self, task_type: str) -> int:
+        try:
+            session = await get_db_session()
+            
+            query = select(MLModel).filter(MLModel.name == task_type)
+            result = await session.execute(query)
+            model = result.scalar_one_or_none()
+            
+            if model:
+                return model.id
+            
+            model_info = {
+                TASK_TEXT_GENERATION: {
+                    "name": "Text Generation (LLaMA)",
+                    "description": "Generate text using LLaMA model",
+                    "version": "1.0",
+                    "model_type": "text_generation",
+                    "parameters": {"model_size": "7b"}
+                },
+                TASK_SPAM_DETECTION: {
+                    "name": "Spam Detector",
+                    "description": "Detect spam in text messages",
+                    "version": "1.0",
+                    "model_type": "classification",
+                    "parameters": {"threshold": 0.5}
+                },
+                TASK_IMAGE_CAPTION: {
+                    "name": "Image Captioner (ViT)",
+                    "description": "Generate captions for images using ViT",
+                    "version": "1.0",
+                    "model_type": "image_captioning",
+                    "parameters": {"beam_size": 4}
+                }
+            }
+            
+            info = model_info.get(task_type, {
+                "name": task_type,
+                "description": f"ML model for {task_type}",
+                "version": "1.0",
+                "model_type": task_type
+            })
+            
+            new_model = MLModel(
+                name=info["name"],
+                description=info["description"],
+                version=info["version"],
+                creation_date=datetime.now(),
+                is_active=True,
+                model_type=info["model_type"],
+                parameters=info.get("parameters", {})
+            )
+            
+            session.add(new_model)
+            await session.commit()
+            await session.refresh(new_model)
+            
+            logger.info(f"Created new model record: {new_model.id}")
+            return new_model.id
+            
+        except Exception as e:
+            logger.error(f"Error getting/creating ML model: {e}")
+            return 1
+            
+    async def _record_prediction(self, user_id: int, model_id: int, input_data: Dict[str, Any], 
+                                output_data: Dict[str, Any], execution_time: float, successful: bool = True):
+        try:
+            session = await get_db_session()
+            
+            prediction = Prediction(
+                user_id=user_id,
+                model_id=model_id,
+                input_data=input_data,
+                output_data=output_data,
+                successful=successful,
+                created_at=datetime.now(),
+                execution_time=execution_time
+            )
+            
+            session.add(prediction)
+            await session.commit()
+            await session.refresh(prediction)
+            
+            logger.info(f"Recorded prediction: {prediction.id}")
+            return prediction.id
+            
+        except Exception as e:
+            logger.error(f"Error recording prediction: {e}")
+            return None
             
     def _validate_task(self, task_data: Dict[str, Any]) -> bool:
         if not isinstance(task_data, dict):
@@ -76,6 +227,10 @@ class MLWorker:
         
         if task_type not in self._model_initializers:
             logger.error(f"Unsupported task type: {task_type}")
+            return False
+            
+        if 'user_id' not in task_data:
+            logger.error("User ID not specified")
             return False
             
         if task_type == TASK_TEXT_GENERATION:
@@ -130,26 +285,83 @@ class MLWorker:
         caption = model.generate(input_image=image)
         return {"caption": caption}
         
-    def _process_task(self, task_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def _process_task(self, task_data: Dict[str, Any]) -> Dict[str, Any]:
         task_type = task_data['task_type']
         task_id = task_data.get('task_id', 'unknown')
+        user_id = task_data.get('user_id')
         
-        logger.info(f"Processing task {task_id} of type {task_type}")
+        logger.info(f"Processing task {task_id} of type {task_type} for user {user_id}")
         
+        if not await self._check_user_balance(user_id, task_type):
+            return {"error": "Insufficient balance", "task_id": task_id}
+            
+        model_id = await self._get_or_create_ml_model(task_type)
+        
+        start_time = time.time()
         try:
             if task_type == TASK_TEXT_GENERATION:
-                return self._process_text_generation(task_data)
+                result = self._process_text_generation(task_data)
             elif task_type == TASK_SPAM_DETECTION:
-                return self._process_spam_detection(task_data)
+                result = self._process_spam_detection(task_data)
             elif task_type == TASK_IMAGE_CAPTION:
-                return self._process_image_caption(task_data)
+                result = self._process_image_caption(task_data)
             else:
-                return {"error": f"Unsupported task type: {task_type}"}
+                result = {"error": f"Unsupported task type: {task_type}"}
+                
+            execution_time = time.time() - start_time
+            
+            input_data = self._get_input_data(task_data, task_type)
+            prediction_id = await self._record_prediction(
+                user_id=user_id,
+                model_id=model_id,
+                input_data=input_data,
+                output_data=result,
+                execution_time=execution_time,
+                successful=True
+            )
+            
+            result["task_id"] = task_id
+            result["execution_time"] = execution_time
+            result["prediction_id"] = prediction_id
+            
+            return result
+            
         except Exception as e:
             logger.error(f"Error processing task {task_id}: {e}")
-            return {"error": str(e)}
             
-    def _callback(self, ch, method, properties, body):
+            execution_time = time.time() - start_time
+            input_data = self._get_input_data(task_data, task_type)
+            await self._record_prediction(
+                user_id=user_id,
+                model_id=model_id,
+                input_data=input_data,
+                output_data={"error": str(e)},
+                execution_time=execution_time,
+                successful=False
+            )
+            
+            return {"error": str(e), "task_id": task_id}
+    
+    def _get_input_data(self, task_data: Dict[str, Any], task_type: str) -> Dict[str, Any]:
+        if task_type == TASK_TEXT_GENERATION:
+            return {
+                "text": task_data.get("text"),
+                "max_length": task_data.get("max_length", 100),
+                "temperature": task_data.get("temperature", 0.7)
+            }
+        elif task_type == TASK_SPAM_DETECTION:
+            return {
+                "text": task_data.get("text"),
+                "detailed": task_data.get("detailed", False)
+            }
+        elif task_type == TASK_IMAGE_CAPTION:
+            return {
+                "image_provided": bool(task_data.get("image_data"))
+            }
+        else:
+            return {}
+            
+    def _callback(self, ch, method, properties, body):      
         try:
             task_data = json.loads(body)
             task_id = task_data.get('task_id', 'unknown')
@@ -160,7 +372,8 @@ class MLWorker:
                 logger.error(f"Invalid task data for task {task_id}")
                 result = {"error": "Invalid task data"}
             else:
-                result = self._process_task(task_data)
+                loop = asyncio.get_event_loop()
+                result = loop.run_until_complete(self._process_task(task_data))
                 
             result['task_id'] = task_id
             
