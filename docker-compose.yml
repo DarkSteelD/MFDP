@@ -68,7 +68,7 @@ services:
   worker:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.worker
     deploy:
       replicas: 3
     environment:
