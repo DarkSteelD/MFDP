@@ -1,0 +1,98 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:14-alpine
+    container_name: ml-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=ml_course
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - ml_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3.11-management
+    container_name: ml-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"  
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - ml_network
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ml-api
+    environment:
+      - APP_MODE=api
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - QUEUE_NAME=ml_tasks
+      - DATABASE_URL=postgresql+asyncpg://postgres:password@postgres:5432/ml_course
+      - HOST=0.0.0.0
+      - PORT=8000
+      - SECRET_KEY=09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+    ports:
+      - "8000:8000"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - ml_network
+    volumes:
+      - ./src:/app/src
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    deploy:
+      replicas: 3
+    environment:
+      - APP_MODE=worker
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - QUEUE_NAME=ml_tasks
+      - DATABASE_URL=postgresql+asyncpg://postgres:password@postgres:5432/ml_course
+      - WORKER_ID=${WORKER_ID:-1}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - ml_network
+    volumes:
+      - ./src/models:/app/src/models
+      - ./src/workers:/app/src/workers
+      - ./src/database:/app/src/database
+
+networks:
+  ml_network:
+    driver: bridge
+
+volumes:
+  rabbitmq_data:
+  postgres_data: 
