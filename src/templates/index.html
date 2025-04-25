@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}ML Service - Home{% endblock %}
+
+{% block content %}
+<div class="row mb-5">
+    <div class="col-md-12 text-center">
+        <h1 class="display-4 mb-4">Welcome to ML Service</h1>
+        <p class="lead">Cutting-edge machine learning capabilities at your fingertips</p>
+    </div>
+</div>
+
+<div class="row mb-5">
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <h3 class="card-title">Text Generation</h3>
+                <p class="card-text">Generate creative and coherent text using state-of-the-art language models.</p>
+                <p><strong>Cost: 10 credits</strong></p>
+                <a href="/text-generation" class="btn btn-primary">Try Now</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <h3 class="card-title">Spam Detection</h3>
+                <p class="card-text">Detect spam and unwanted content with our advanced classification models.</p>
+                <p><strong>Cost: 5 credits</strong></p>
+                <a href="/spam-detection" class="btn btn-primary">Try Now</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <h3 class="card-title">Image Captioning</h3>
+                <p class="card-text">Generate descriptive captions for your images using vision-language models.</p>
+                <p><strong>Cost: 15 credits</strong></p>
+                <a href="/image-caption" class="btn btn-primary">Try Now</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-5">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <h3 class="card-title">How It Works</h3>
+                <ol class="list-group list-group-numbered mb-4">
+                    <li class="list-group-item">Register an account or log in if you already have one</li>
+                    <li class="list-group-item">Add credits to your account from the balance page</li>
+                    <li class="list-group-item">Select an ML service from the menu</li>
+                    <li class="list-group-item">Submit your data for processing</li>
+                    <li class="list-group-item">Get instant results while credits are automatically deducted</li>
+                </ol>
+                
+                <div class="text-center">
+                    {% if not user %}
+                    <a href="/register" class="btn btn-success me-2">Register Now</a>
+                    <a href="/login" class="btn btn-outline-primary">Login</a>
+                    {% else %}
+                    <a href="/dashboard" class="btn btn-success">Go to Dashboard</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if not user %}
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-body">
+                <h3 class="card-title">API Access</h3>
+                <p>Integrate our ML models directly into your applications using our REST API.</p>
+                <p>API documentation is available for authenticated users.</p>
+                <a href="/login" class="btn btn-outline-dark">Login to Access API Docs</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-body">
+                <h3 class="card-title">Start with Free Credits</h3>
+                <p>New users receive 50 credits upon registration to test our services.</p>
+                <p>Additional credits can be purchased from your account dashboard.</p>
+                <a href="/register" class="btn btn-outline-success">Register Now</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %} 

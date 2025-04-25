@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - ML Service{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h2>Welcome, {{ user.username }}!</h2>
+        <div class="alert alert-info">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>Your balance:</strong> {{ user.balance }} credits
+                </div>
+                <a href="/balance" class="btn btn-primary">Add Credits</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-5">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h3>Your ML Services</h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <h4>Text Generation</h4>
+                                <p>Generate coherent and creative text based on your prompt.</p>
+                                <p><strong>Cost: 10 credits</strong></p>
+                                <a href="/text-generation" class="btn btn-primary">Use Service</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <h4>Spam Detection</h4>
+                                <p>Detect spam in text messages with our classifier.</p>
+                                <p><strong>Cost: 5 credits</strong></p>
+                                <a href="/spam-detection" class="btn btn-primary">Use Service</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <h4>Image Captioning</h4>
+                                <p>Generate descriptive captions for your images.</p>
+                                <p><strong>Cost: 15 credits</strong></p>
+                                <a href="/image-caption" class="btn btn-primary">Use Service</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h3>Recent Activity</h3>
+            </div>
+            <div class="card-body">
+                {% if recent_predictions %}
+                <ul class="list-group">
+                    {% for prediction in recent_predictions %}
+                    <li class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ prediction.model.name }}</strong>
+                                <small class="text-muted d-block">{{ prediction.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                            </div>
+                            <span class="badge bg-info">{{ prediction.successful and 'Success' or 'Failed' }}</span>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-center text-muted">No recent activity</p>
+                {% endif %}
+                <div class="text-center mt-3">
+                    <a href="/history" class="btn btn-outline-secondary">View All History</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h3>API Access</h3>
+            </div>
+            <div class="card-body">
+                <p>Integrate our ML services directly into your applications using our REST API.</p>
+                <p>Your API token:</p>
+                <div class="input-group mb-3">
+                    <input type="text" class="form-control" value="{{ api_token }}" id="apiToken" readonly>
+                    <button class="btn btn-outline-secondary" type="button" onclick="copyToken()">Copy</button>
+                </div>
+                <div class="text-center mt-3">
+                    <a href="/api-docs" class="btn btn-outline-primary">View API Documentation</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function copyToken() {
+        const tokenInput = document.getElementById('apiToken');
+        tokenInput.select();
+        document.execCommand('copy');
+        alert('Token copied to clipboard!');
+    }
+</script>
+{% endblock %} 
