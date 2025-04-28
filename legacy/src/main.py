@@ -5,6 +5,7 @@ import asyncio
 
 from src.database.init_db import init_db
 from src.api.endpoints import users, balance, predictions
+from src.api import ml_api
 
 app = FastAPI(
     version="1.0.0",
@@ -23,6 +24,7 @@ app.add_middleware(
 app.include_router(users.router, prefix="/users", tags=["users"])
 app.include_router(balance.router, prefix="/users", tags=["balance"])
 app.include_router(predictions.router, prefix="/ml", tags=["predictions"])
+app.mount("/ml-tasks", ml_api.app, name="ml_tasks_api")
 
 from src.api.auth import oauth2_scheme
 app.include_router(users.router, tags=["auth"])

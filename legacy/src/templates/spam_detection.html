@@ -84,10 +84,11 @@
                                 <td>{{ feature.name }}</td>
                                 <td>{{ feature.score }}</td>
                                 <td>
+                                    {% set width_pct = (feature.impact | abs) * 100 %}
                                     <div class="progress">
                                         <div class="progress-bar {% if feature.impact < 0 %}bg-success{% else %}bg-danger{% endif %}"
-                                             role="progressbar"
-                                             style="width: {{ (feature.impact | abs) * 100 }}%"
+                                             role="progressbar" 
+                                             style="width: 50%"
                                              aria-valuenow="{{ feature.impact }}"
                                              aria-valuemin="0"
                                              aria-valuemax="1">

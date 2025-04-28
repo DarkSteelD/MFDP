@@ -14,7 +14,7 @@ python-multipart==0.0.6
 pydantic==2.7.1
 sqlalchemy==2.0.20
 tinycss2==1.4.0
-torch==2.0.1
+torch==2.6.0
 tqdm==4.66.1
 transformers==4.32.1
 uvicorn==0.34.0
