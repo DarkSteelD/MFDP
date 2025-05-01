@@ -8,10 +8,11 @@ from typing import Generator
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
+import os
 
-from app.src.core.database import SessionLocal
-from app.src.db.models import User
-
+from src.core.database import SessionLocal
+from src.db.models import User
+from src.core.config import SECRET_KEY, ALGORITHM
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 
@@ -45,7 +46,17 @@ async def get_current_user(
     Returns:
       User: authenticated user instance.
     """
-    pass
+    from jose import JWTError, jwt
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id: int = payload.get("sub")
+    except JWTError:
+        raise HTTPException(401, "Invalid authentication token")
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if user is None:
+        raise HTTPException(401, "User not found")
+    return user
 
 
 async def get_current_active_user(
@@ -60,7 +71,9 @@ async def get_current_active_user(
     Returns:
       User: active user instance.
     """
-    pass
+    if not current_user.is_active:
+        raise HTTPException(403, "Inactive user")
+    return current_user
 
 
 async def get_current_active_admin(
@@ -75,4 +88,6 @@ async def get_current_active_admin(
     Returns:
       User: admin user instance.
     """
-    pass 
+    if not current_user.is_admin:
+        raise HTTPException(403, "Unauthorized")
+    return current_user

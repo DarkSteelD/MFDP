@@ -7,9 +7,9 @@ Contains endpoints for balance operations.
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.src.schemas.balance import BalanceRead, BalanceTopUp
-from app.src.dependencies import get_db, get_current_active_user
-from app.src.db.models import User
+from src.schemas.balance import BalanceRead, BalanceTopUp
+from src.dependencies import get_db, get_current_active_user
+from src.db.models import Transaction, User
 
 
 router = APIRouter(prefix="/balance", tags=["balance"])
@@ -22,12 +22,23 @@ async def get_balance(
     """
     Get current user's balance.
 
-    Functional requirements:
-      - Authenticate user via dependency.
-      - Fetch user's balance from the database.
-      - Return a BalanceRead model.
+    Steps:
+      1. Authenticate and ensure user is active via dependency injection.
+      2. Retrieve balance directly from current_user model (float).
+      3. Return a BalanceRead instance.
+
+    Args:
+      db (Session): database session provided by dependency.
+      current_user (User): authenticated and active user instance.
+
+    Returns:
+      BalanceRead: contains user_id and current credit balance.
+
+    Raises:
+      HTTPException: 401 if user is not authenticated.
+      HTTPException: 403 if user is inactive.
     """
-    pass
+    return BalanceRead(user_id=current_user.id, balance=current_user.balance)
 
 @router.post("/topup", response_model=BalanceRead, status_code=status.HTTP_201_CREATED)
 async def top_up_balance(
@@ -36,13 +47,38 @@ async def top_up_balance(
     current_user: User = Depends(get_current_active_user)
 ):
     """
-    Top up user's balance.
+    Top up user's balance by creating a deposit transaction.
 
-    Functional requirements:
-      - Accept 'amount' and optional 'comment' in the request body.
-      - Validate that amount > 0.
-      - Create a deposit transaction in the database.
-      - Update user's balance accordingly.
-      - Return updated BalanceRead.
+    Steps:
+      1. Validate that request.amount > 0 via Pydantic schema.
+      2. Create a Transaction of type 'deposit' linked to current_user.
+      3. Update current_user.balance by adding request.amount.
+      4. Commit the transaction and updated balance to the database.
+      5. Refresh user model and return updated balance.
+
+    Args:
+      request (BalanceTopUp): contains amount and optional comment.
+      db (Session): database session provided by dependency.
+      current_user (User): authenticated and active user instance.
+
+    Returns:
+      BalanceRead: contains user_id and updated credit balance.
+
+    Raises:
+      HTTPException: 400 if amount invalid.
+      HTTPException: 401 if user is not authenticated.
     """
-    pass 
+    # Create the deposit transaction
+    transaction = Transaction(
+        user_id=current_user.id,
+        type="deposit",
+        amount=request.amount,
+        comment=request.comment
+    )
+    db.add(transaction)
+    # Update user's balance
+    current_user.balance += request.amount
+    db.add(current_user)
+    db.commit()
+    db.refresh(current_user)
+    return BalanceRead(user_id=current_user.id, balance=current_user.balance)

@@ -30,5 +30,5 @@ class BalanceTopUp(BaseModel):
       amount: positive float amount to add to balance
       comment: optional description or note for this top-up
     """
-    amount : float = Field(..., ge=0, description="Positive float amount to add to balance")
+    amount : float = Field(..., gt=0, description="Positive float amount to add to balance")
     comment : Optional[str] = Field(default=None, description="Optional description or note for this top-up")

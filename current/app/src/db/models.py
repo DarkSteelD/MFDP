@@ -8,7 +8,7 @@ from sqlalchemy.orm import declarative_base
 from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Enum, ForeignKey
 from sqlalchemy.orm import relationship
 from enum import Enum as PyEnum
-from datetime import datetime
+from datetime import datetime, timezone
 
 Base = declarative_base()
 
@@ -29,6 +29,7 @@ class User(Base):
       hashed_password (str): stored password hash
       balance (float): user credits balance
       is_admin (bool): administrative privileges flag (default False)
+      is_active(bool): account active flag (default True)
       created_at (datetime): timestamp of account creation
       transactions: relationship to Transaction model
     """
@@ -39,7 +40,8 @@ class User(Base):
     hashed_password = Column(String)
     balance = Column(Float, default=0.0)
     is_admin = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.now(datetime.UTC))
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
 
 class Transaction(Base):
@@ -60,7 +62,7 @@ class Transaction(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     type = Column(Enum(TransactionType))
     amount = Column(Float)
-    timestamp = Column(DateTime, default=datetime.now(datetime.UTC))
+    timestamp = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     user = relationship("User", back_populates="transactions")
     

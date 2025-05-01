@@ -6,7 +6,9 @@ services:
       context: ./app
       dockerfile: Dockerfile
     env_file:
-      - ./app/.env
+      - ./app/.app.env
+    ports:
+      - "8000:8000"
     volumes:
       - ./app/src:/app/src
     networks:
@@ -43,6 +45,29 @@ services:
       - POSTGRES_DB=db
     volumes:
       - ./postgres_data:/var/lib/postgresql/data
+    networks:
+      - app_net
+
+  worker:
+    build:
+      context: ./worker
+      dockerfile: Dockerfile.worker
+    env_file:
+      - ./worker/worker.env
+    volumes:
+      - ./worker/src:/worker/src
+    depends_on:
+      - rabbitmq
+      - database
+    networks:
+      - app_net
+
+  frontend:
+    build:
+      context: ./frontend-service
+      dockerfile: Dockerfile
+    depends_on:
+      - app
     networks:
       - app_net
 

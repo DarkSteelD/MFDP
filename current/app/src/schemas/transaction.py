@@ -16,7 +16,8 @@ class TransactionBase(BaseModel):
       type: transaction type ('deposit' or 'prediction')
       amount: positive float credit amount
     """
-    pass
+    type: str = Field(..., description="Transaction type ('deposit' or 'prediction')")
+    amount: float = Field(..., ge=0, description="Positive float credit amount")
 
 
 class TransactionCreate(TransactionBase):
@@ -38,4 +39,9 @@ class TransactionRead(TransactionBase):
       user_id: associated user identifier
       timestamp: datetime of transaction
     """
-    pass 
+    id: int = Field(..., description="Unique transaction identifier")
+    user_id: int = Field(..., description="Associated user identifier")
+    timestamp: datetime = Field(..., description="Datetime of transaction")
+
+    class Config:
+        orm_mode = True

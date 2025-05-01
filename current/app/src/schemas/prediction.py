@@ -5,7 +5,7 @@ Contains Pydantic models for prediction requests and responses.
 """
 
 from pydantic import BaseModel, Field
-from typing import Any, List, Dict
+from typing import List, Optional
 
 
 class PredictionRequest(BaseModel):
@@ -13,9 +13,11 @@ class PredictionRequest(BaseModel):
     Schema for submitting data to ML prediction endpoint.
 
     Attributes:
-      data: list of records, each record is a dict mapping feature names to values
+      image (str): base64-encoded image input for prediction.
     """
-    data : List[Dict[str, Any]] = Field(..., description="List of records, each record is a dict mapping feature names to values")
+    image: str = Field(
+        ..., description="Image input for prediction (base64-encoded string)"
+    )
 
 
 class PredictionResponse(BaseModel):
@@ -23,10 +25,12 @@ class PredictionResponse(BaseModel):
     Schema for returning ML prediction results.
 
     Attributes:
-      predictions: list of predicted values (Any)
-      credits_spent: float amount of credits charged
+      image_prediction (Optional[str]): image output from the prediction model (base64 or URL).
+      credits_spent (float): amount of credits charged for this prediction.
     """
-    predictions : List[Any] = Field(..., description="List of predicted values")
+    image_prediction: Optional[str] = Field(
+        None, description="Image output from the prediction model (base64 or URL)"
+    )
     credits_spent : float = Field(..., description="Amount of credits charged")
 
 

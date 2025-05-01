@@ -6,20 +6,27 @@ Contains the main page endpoint for the application.
 
 from fastapi import APIRouter
 from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
+from fastapi import Request
 
 router = APIRouter()
 
-@router.get("/", response_class=HTMLResponse)
-async def home():
-    """
-    Render the main page with a description of the ML service capabilities.
+templates = Jinja2Templates(directory="src/templates")
 
-    Functional requirements:
-      - Display an overview of ML service features.
-      - Present navigation links or buttons for:
-        - User registration and authentication.
-        - Balance inquiry and top-up.
-        - Prediction functionality.
-        - Transaction history.
+@router.get("/", response_class=HTMLResponse)
+async def home(request: Request):
     """
-    pass 
+    Render the main page template with Jinja2.
+
+    Steps:
+      1. Serve an HTML page response displaying the ML service landing page.
+      2. Include an overview of features: registration, authentication, balance management, predictions, and transaction history.
+      3. Provide navigation links or buttons for each feature.
+
+    Returns:
+      HTMLResponse: rendered main page HTML content.
+
+    Raises:
+      None
+    """
+    return templates.TemplateResponse("main.html", {"request": request})

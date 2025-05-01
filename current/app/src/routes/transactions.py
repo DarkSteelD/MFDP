@@ -8,9 +8,9 @@ from typing import List
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.src.schemas.transaction import TransactionRead
-from app.src.dependencies import get_db, get_current_active_user
-from app.src.db.models import User as DBUser
+from src.schemas.transaction import TransactionRead
+from src.dependencies import get_db, get_current_active_user
+from src.db.models import Transaction, User as DBUser
 
 router = APIRouter(prefix="/transactions", tags=["transactions"])
 
@@ -22,9 +22,28 @@ async def get_transactions(
     """
     Get current user's transaction history.
 
-    Functional requirements:
-      - Authenticate user via dependency.
-      - Fetch all transactions for the current user from the database.
-      - Return a list of TransactionRead models.
+    Steps:
+      1. Authenticate user via dependency injection.
+      2. Ensure user is active via dependency.
+      3. Query the database for transactions belonging to the current user.
+      4. Sort transactions by timestamp in descending order.
+      5. Return a list of TransactionRead models.
+
+    Args:
+      db (Session): database session provided by dependency.
+      current_user (User): authenticated and active user instance.
+
+    Returns:
+      List[TransactionRead]: list of user's transactions.
+
+    Raises:
+      HTTPException: 401 if user is not authenticated.
+      HTTPException: 403 if user is inactive.
     """
-    pass 
+    transactions = (
+        db.query(Transaction)
+        .filter(Transaction.user_id == current_user.id)
+        .order_by(Transaction.timestamp.desc())
+        .all()
+    )
+    return transactions

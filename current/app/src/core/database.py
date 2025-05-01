@@ -32,7 +32,5 @@ def init_db() -> None:
       - Import all ORM models to register them with the metadata.
       - Call Base.metadata.create_all(bind=engine).
     """
-    # Import here to register models
-    # from app.src.db.models import Base
-    # Base.metadata.create_all(bind=engine)
-    pass 
+    from src.db.models import Base
+    Base.metadata.create_all(bind=engine)
