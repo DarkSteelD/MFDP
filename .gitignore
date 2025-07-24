@@ -174,3 +174,11 @@ cython_debug/
 .pypirc
 current/rabbitmq_data/
 current/postgres_data/
+
+# ML Service specific test artifacts
+**/htmlcov_worker/
+**/test_database.db
+app/uploads/test_*
+worker/downloads/test_*
+**/temp_test_files/
+**/mock_nifti_files/
