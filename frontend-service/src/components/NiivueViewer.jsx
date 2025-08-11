@@ -4,9 +4,10 @@ import { Niivue } from '@niivue/niivue';
 const defaultOverlayOptions = {
   colormap: 'red',
   opacity: 0.5,
+  cal_min: 0.5,
 };
 
-// sources: { background: string, overlays?: Array<{ url: string, colormap?: string, opacity?: number }> }
+// sources: { background: string, overlays?: Array<{ url: string, colormap?: string, opacity?: number, cal_min?: number, cal_max?: number }> }
 const NiivueViewer = ({ sources, onReady, onError, height = 600 }) => {
   const canvasRef = useRef(null);
   const nvRef = useRef(null);
@@ -19,14 +20,19 @@ const NiivueViewer = ({ sources, onReady, onError, height = 600 }) => {
         const nv = new Niivue({ logging: false, dragAndDropEnabled: false });
         nvRef.current = nv;
         await nv.attachToCanvas(canvasRef.current);
-        await nv.loadVolumes([{ url: sources.background }]);
+        // Load background volume (grayscale)
+        await nv.loadVolumes([{ url: sources.background, colormap: 'gray' }]);
 
+        // Load overlays with explicit options
         if (Array.isArray(sources.overlays)) {
           for (const ov of sources.overlays) {
-            await nv.addVolumeFromUrl({ url: ov.url });
-            const index = nv.volumes.length - 1;
-            nv.setColormap(index, ov.colormap || defaultOverlayOptions.colormap);
-            nv.setOpacity(index, typeof ov.opacity === 'number' ? ov.opacity : defaultOverlayOptions.opacity);
+            const opts = {
+              url: ov.url,
+              colormap: ov.colormap || defaultOverlayOptions.colormap,
+              opacity: typeof ov.opacity === 'number' ? ov.opacity : defaultOverlayOptions.opacity,
+              cal_min: typeof ov.cal_min === 'number' ? ov.cal_min : defaultOverlayOptions.cal_min,
+            };
+            await nv.addVolumeFromUrl(opts);
           }
         }
 

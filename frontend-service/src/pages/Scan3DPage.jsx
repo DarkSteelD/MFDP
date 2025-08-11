@@ -67,6 +67,19 @@ const Scan3DPage = () => {
     }
   };
 
+  const handleUseDemo = () => {
+    setError(null);
+    setResult({
+      credits_spent: 0,
+      original_scan_url: 'demo_original.nii.gz',
+      brain_mask_url: '/downloads/demo_brain_mask.nii.gz',
+      aneurysm_mask_url: '/downloads/demo_aneurysm_mask.nii.gz',
+    });
+    setSelectedView('original');
+    setShowOverlay(false);
+    setPreviewData({ name: 'Demo volumes', size: '-', type: 'NIfTI demo' });
+  };
+
   const handleDragOver = (e) => {
     e.preventDefault();
   };
@@ -153,6 +166,13 @@ const Scan3DPage = () => {
             ) : (
               'Analyze Scan'
             )}
+          </button>
+          <button
+            className="btn btn-outline-secondary ms-2 mb-3"
+            type="button"
+            onClick={handleUseDemo}
+          >
+            Use Demo Volumes
           </button>
 
           {error && (

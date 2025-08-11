@@ -11,6 +11,8 @@ services:
       - "8000:8000"
     volumes:
       - ./app/src:/app/src
+      - ./app/uploads:/app/uploads
+      - ./app/downloads:/app/downloads
     networks:
       - app_net
 
