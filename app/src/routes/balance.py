@@ -14,6 +14,14 @@ from src.db.models import Transaction, User
 
 router = APIRouter(prefix="/balance", tags=["balance"])
 
+# Alias without trailing slash to avoid 307 from /balance -> /balance/
+@router.get("", response_model=BalanceRead)
+async def get_balance_alias(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    return BalanceRead(user_id=current_user.id, balance=current_user.balance)
+
 @router.get("/", response_model=BalanceRead)
 async def get_balance(
     db: Session = Depends(get_db),
@@ -81,4 +89,7 @@ async def top_up_balance(
     db.add(current_user)
     db.commit()
     db.refresh(current_user)
-    return BalanceRead(user_id=current_user.id, balance=current_user.balance)
+    # Ensure refreshed relationship state
+    db.expunge_all()
+    refreshed_user = db.query(User).get(current_user.id)
+    return BalanceRead(user_id=refreshed_user.id, balance=refreshed_user.balance)

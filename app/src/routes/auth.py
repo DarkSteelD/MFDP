@@ -7,7 +7,7 @@ Contains endpoints for user registration and authentication.
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from src.core.security import verify_password, get_password_hash, create_access_token
 from src.schemas.auth import Token
@@ -50,7 +50,7 @@ async def register_user(
         hashed_password=hashed_password,
         balance=0.0,
         is_admin=False,
-        created_at=datetime.now(datetime.UTC)
+        created_at=datetime.now(timezone.utc)
     )
     db.add(user)
     db.commit()

@@ -6,6 +6,7 @@ Contains Pydantic models for transaction operations.
 
 from pydantic import BaseModel, Field
 from datetime import datetime
+from typing import Optional
 
 
 class TransactionBase(BaseModel):
@@ -13,11 +14,13 @@ class TransactionBase(BaseModel):
     Base schema for transaction data.
 
     Attributes:
-      type: transaction type ('deposit' or 'prediction')
+      type: transaction type ('deposit', 'prediction', or 'scan3d')
       amount: positive float credit amount
+      comment: optional comment
     """
-    type: str = Field(..., description="Transaction type ('deposit' or 'prediction')")
+    type: str = Field(..., description="Transaction type ('deposit', 'prediction', or 'scan3d')")
     amount: float = Field(..., ge=0, description="Positive float credit amount")
+    comment: Optional[str] = Field(None, description="Optional transaction comment")
 
 
 class TransactionCreate(TransactionBase):

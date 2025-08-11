@@ -2,8 +2,11 @@
 Test configuration and fixtures for the ML Service API.
 """
 
-import pytest
 import os
+
+os.environ.setdefault("DATABASE_URL", "sqlite:///./test_database.db")
+
+import pytest
 import tempfile
 from typing import Generator, Dict, Any
 from sqlalchemy import create_engine
@@ -13,7 +16,7 @@ from faker import Faker
 
 from src.main import app
 from src.db.models import Base, User, Transaction
-from src.core.database import get_db
+from src.dependencies import get_db
 from src.core.security import get_password_hash, create_access_token
 from src.dependencies import get_current_active_user
 

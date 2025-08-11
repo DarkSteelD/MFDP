@@ -14,6 +14,20 @@ from src.db.models import Transaction, User as DBUser
 
 router = APIRouter(prefix="/transactions", tags=["transactions"])
 
+# Alias without trailing slash to avoid 307 from /transactions -> /transactions/
+@router.get("", response_model=List[TransactionRead])
+async def get_transactions_alias(
+    db: Session = Depends(get_db),
+    current_user: DBUser = Depends(get_current_active_user)
+):
+    transactions = (
+        db.query(Transaction)
+        .filter(Transaction.user_id == current_user.id)
+        .order_by(Transaction.timestamp.desc())
+        .all()
+    )
+    return transactions
+
 @router.get("/", response_model=List[TransactionRead])
 async def get_transactions(
     db: Session = Depends(get_db),

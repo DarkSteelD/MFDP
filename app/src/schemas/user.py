@@ -36,11 +36,13 @@ class UserRead(UserBase):
       balance: current credit balance
       created_at: timestamp of registration
       is_admin: indicates administrative privileges
+      is_active: indicates active status
     """
     id: int = Field(..., description="Unique user identifier")
     balance: float = Field(..., ge=0, description="Current credit balance")
     created_at: datetime = Field(..., description="Timestamp of registration")
     is_admin: bool = Field(False, description="Administrative privileges flag")
+    is_active: bool = Field(True, description="Active status flag")
 
     class Config:
         orm_mode = True

@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt', 'worker/requirements-ci.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Create venv
+        run: python -m venv .venv
+
+      - name: Install backend deps
+        run: |
+          . .venv/bin/activate
+          pip install --upgrade pip
+          pip install -r app/requirements.txt
+
+      - name: Run backend tests (SQLite)
+        env:
+          DATABASE_URL: sqlite:///./test_database.db
+        run: |
+          . .venv/bin/activate
+          cd app
+          python run_tests.py
+
+      - name: Install worker deps (CI minimal)
+        run: |
+          . .venv/bin/activate
+          pip install -r worker/requirements-ci.txt
+
+      - name: Run worker tests
+        run: |
+          . .venv/bin/activate
+          cd worker
+          python run_tests.py 

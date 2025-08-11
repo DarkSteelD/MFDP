@@ -211,19 +211,20 @@ async def handle_image_message(message: IncomingMessage) -> None:
     Args:
       message (IncomingMessage): incoming RabbitMQ message.
     """
-    async with message.process():
-        payload = json.loads(message.body)
-        transaction_id = payload.get("transaction_id")
-        image_data = payload.get("image")
+    payload = json.loads(message.body)
+    transaction_id = payload.get("transaction_id")
+    image_data = payload.get("image")
 
+    proc = message.process()
+    if asyncio.iscoroutine(proc):
+        proc = await proc
+    async with proc:
         try:
             logger.info(f"Processing image task: {transaction_id}")
             
-            # Create mask from image
             mask_path = create_mask_from_image(image_data, 1, "image.png")  # Mock user_id
             logger.info(f"Mask created: {mask_path}")
             
-            # Publish results
             await message.channel.default_exchange.publish(
                 Message(
                     body=json.dumps({
@@ -248,19 +249,23 @@ async def handle_scan3d_message(message: IncomingMessage) -> None:
     Args:
       message (IncomingMessage): incoming RabbitMQ message.
     """
-    async with message.process():
-        payload = json.loads(message.body)
-        transaction_id = payload.get("transaction_id")
-        scan_path = payload.get("scan_path")
-        user_id = payload.get("user_id")
-        filename = payload.get("filename")
+    # Parse and validate outside of process context so errors propagate
+    payload = json.loads(message.body)
+    transaction_id = payload.get("transaction_id")
+    scan_path = payload.get("scan_path")
+    user_id = payload.get("user_id")
+    filename = payload.get("filename")
 
+    # Validate scan file exists early
+    if not os.path.exists(scan_path):
+        raise FileNotFoundError(f"Scan file not found: {scan_path}")
+
+    proc = message.process()
+    if asyncio.iscoroutine(proc):
+        proc = await proc
+    async with proc:
         try:
             logger.info(f"Processing 3D scan: {scan_path}")
-            
-            # Validate scan file exists
-            if not os.path.exists(scan_path):
-                raise FileNotFoundError(f"Scan file not found: {scan_path}")
             
             # Create brain mask
             brain_mask_path = create_brain_mask(scan_path, user_id, filename)
