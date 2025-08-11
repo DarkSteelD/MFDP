@@ -182,3 +182,18 @@ app/uploads/test_*
 worker/downloads/test_*
 **/temp_test_files/
 **/mock_nifti_files/
+
+# Runtime data and volumes
+app/uploads/
+app/downloads/
+rabbitmq_data/
+postgres_data/
+
+# Frontend artifacts
+frontend-service/node_modules/
+frontend-service/dist/
+frontend-service/.vite/
+
+# Local env files
+app/.app.env
+worker/worker.env
