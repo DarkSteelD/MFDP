@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import BalanceCard from '../components/BalanceCard';
 import NiftiViewer from '../components/NiftiViewer';
+import NiivueViewer from '../components/NiivueViewer';
 import MaskOverlay from '../components/MaskOverlay';
 import api from '../services/api';
 
@@ -13,6 +14,8 @@ const Scan3DPage = () => {
   const [selectedView, setSelectedView] = useState('original'); // 'original', 'brain', 'aneurysm'
   const [showOverlay, setShowOverlay] = useState(false);
   const fileInputRef = useRef(null);
+
+  const isImageUrl = (url) => /\.(png|jpg|jpeg)$/i.test(url || '');
 
   const handleFileChange = (e) => {
     const f = e.target.files[0];
@@ -87,6 +90,8 @@ const Scan3DPage = () => {
       }
     }
   };
+
+  const canShow2DOverlay = result && isImageUrl(`/uploads/${result.original_scan_url}`) && isImageUrl(result.brain_mask_url) && isImageUrl(result.aneurysm_mask_url);
 
   return (
     <div>
@@ -245,16 +250,18 @@ const Scan3DPage = () => {
                 </h5>
               </div>
               <div className="card-body">
-                <NiftiViewer
-                  fileUrl={
-                    selectedView === 'original' 
-                      ? `/uploads/${result.original_scan_url}`
-                      : selectedView === 'brain'
-                      ? result.brain_mask_url
-                      : result.aneurysm_mask_url
-                  }
-                  onLoad={() => console.log('NIfTI viewer loaded')}
-                  onError={(error) => console.error('NIfTI viewer error:', error)}
+                <NiivueViewer
+                  sources={{
+                    background: `/uploads/${result.original_scan_url}`,
+                    overlays:
+                      selectedView === 'original'
+                        ? []
+                        : selectedView === 'brain'
+                        ? [{ url: result.brain_mask_url, colormap: 'green', opacity: 0.5 }]
+                        : [{ url: result.aneurysm_mask_url, colormap: 'red', opacity: 0.5 }],
+                  }}
+                  onReady={() => console.log('Niivue ready')}
+                  onError={(e) => console.error('Niivue error', e)}
                 />
               </div>
             </div>
@@ -262,7 +269,7 @@ const Scan3DPage = () => {
         </div>
       )}
 
-      {/* Mask Overlay Section */}
+      {/* Mask Overlay Section (only for image results) */}
       {showOverlay && result && (
         <div className="row mt-4">
           <div className="col-12">
@@ -274,26 +281,32 @@ const Scan3DPage = () => {
                 </h5>
               </div>
               <div className="card-body">
-                <div className="row">
-                  <div className="col-md-6">
-                    <h6>Brain Mask Overlay:</h6>
-                    <MaskOverlay
-                      originalImage={`/uploads/${result.original_scan_url}`}
-                      maskImage={result.brain_mask_url}
-                      onLoad={() => console.log('Brain mask overlay loaded')}
-                      onError={(error) => console.error('Brain mask overlay error:', error)}
-                    />
+                {canShow2DOverlay ? (
+                  <div className="row">
+                    <div className="col-md-6">
+                      <h6>Brain Mask Overlay:</h6>
+                      <MaskOverlay
+                        originalImage={`/uploads/${result.original_scan_url}`}
+                        maskImage={result.brain_mask_url}
+                        onLoad={() => console.log('Brain mask overlay loaded')}
+                        onError={(error) => console.error('Brain mask overlay error:', error)}
+                      />
+                    </div>
+                    <div className="col-md-6">
+                      <h6>Aneurysm Mask Overlay:</h6>
+                      <MaskOverlay
+                        originalImage={`/uploads/${result.original_scan_url}`}
+                        maskImage={result.aneurysm_mask_url}
+                        onLoad={() => console.log('Aneurysm mask overlay loaded')}
+                        onError={(error) => console.error('Aneurysm mask overlay error:', error)}
+                      />
+                    </div>
                   </div>
-                  <div className="col-md-6">
-                    <h6>Aneurysm Mask Overlay:</h6>
-                    <MaskOverlay
-                      originalImage={`/uploads/${result.original_scan_url}`}
-                      maskImage={result.aneurysm_mask_url}
-                      onLoad={() => console.log('Aneurysm mask overlay loaded')}
-                      onError={(error) => console.error('Aneurysm mask overlay error:', error)}
-                    />
+                ) : (
+                  <div className="alert alert-info">
+                    2D overlay is available only for image results. For NIfTI scans, please use the 3D viewer above.
                   </div>
-                </div>
+                )}
                 <div className="mt-3">
                   <small className="text-muted">
                     Both original scan and masks are displayed with 50% transparency for better visualization.
